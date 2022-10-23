@@ -344,7 +344,8 @@ void onInverterCommand()
 void serviceInverter()
 {
   byte c;
-
+  char buff[30];
+  
   //Check time since last requested command
   if (_lastRequestedAt.compare(INVERTER_COMMAND_TIMEOUT_MS) > 0)
   {
@@ -358,7 +359,7 @@ void serviceInverter()
   if ((_lastRequestedCommand == "") && (_lastReceivedAt.compare(INVERTER_COMMAND_DELAY_MS) > 0) && (!_allMessagesUpdated))
   {
     if (_nextCommandNeeded == "")
-      _nextCommandNeeded = "QPI";
+      _nextCommandNeeded = "QPIGS";
   
     unsigned short crc = cal_crc_half((byte*)_nextCommandNeeded.c_str(), _nextCommandNeeded.length());
   
@@ -366,15 +367,22 @@ void serviceInverter()
     _lastRequestedAt.reset();
 
     Serial.println(_nextCommandNeeded);
+    
+    sprintf(buff, "%X\n", crc);
+    Serial.print(buff);
   
-    Serial.print(_nextCommandNeeded);
-    Serial.print((char)((crc >> 8) & 0xFF));
-    Serial.print((char)((crc >> 0) & 0xFF));
-    Serial.print("\r");
+    Serial2.print(_nextCommandNeeded);
+    Serial2.print((char)((crc >> 8) & 0xFF));
+    Serial2.print((char)((crc >> 0) & 0xFF));
+    Serial2.print("\r");
   }
+
+  sprintf(buff, "Rcv %d\n", Serial2.available());
+  Serial.print(buff);
     
   while (Serial2.available() > 0) {
     c = Serial2.read();
+    Serial.print(c);
     //Only accept incoming characters if we've requested something
     if (_lastRequestedCommand != "")
     {
