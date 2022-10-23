@@ -2,12 +2,8 @@
 
 #include "inverter.h"
 #include "tickCounter.h"
-//#include "thingspeak.h"
-//#include "settings.h"
 
 extern TickCounter _tickCounter;
-//extern EspSoftSerialRx SerialRx;
-//extern Settings _settings;
 
 String _commandBuffer;
 String _lastRequestedCommand = "-"; //Set to not empty to force a timeout on startup
@@ -359,17 +355,17 @@ void serviceInverter()
   if ((_lastRequestedCommand == "") && (_lastReceivedAt.compare(INVERTER_COMMAND_DELAY_MS) > 0) && (!_allMessagesUpdated))
   {
     if (_nextCommandNeeded == "")
-      _nextCommandNeeded = "QPIGS";
+      _nextCommandNeeded = "QPI";
   
     unsigned short crc = cal_crc_half((byte*)_nextCommandNeeded.c_str(), _nextCommandNeeded.length());
   
     _lastRequestedCommand = _nextCommandNeeded;
     _lastRequestedAt.reset();
 
-    Serial.println(_nextCommandNeeded);
+    //Serial.println(_nextCommandNeeded);
     
-    sprintf(buff, "%X\n", crc);
-    Serial.print(buff);
+    //sprintf(buff, "%X\n", crc);
+    //Serial.print(buff);
   
     Serial2.print(_nextCommandNeeded);
     Serial2.print((char)((crc >> 8) & 0xFF));
@@ -377,12 +373,12 @@ void serviceInverter()
     Serial2.print("\r");
   }
 
-  sprintf(buff, "Rcv %d\n", Serial2.available());
-  Serial.print(buff);
+  //sprintf(buff, "Rcv %d\n", Serial2.available());
+  //Serial.print(buff);
     
   while (Serial2.available() > 0) {
     c = Serial2.read();
-    Serial.print(c);
+    //Serial.print(c);
     //Only accept incoming characters if we've requested something
     if (_lastRequestedCommand != "")
     {

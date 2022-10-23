@@ -11,16 +11,6 @@ class TickCounter
 
   public:
   
-    //The tick counter will roll over in 53 seconds, this must be called at least every 26 sec
-    unsigned long long getTicks()
-    {
-      unsigned long ticks = ESP.getCycleCount();
-      unsigned long delta = (ticks - _lastCpuTickCount) & 0x7FFFFFFF;
-      _lastCpuTickCount = ticks;
-      _tickCounter += delta;
-      return _tickCounter;
-    }
-
     unsigned long long getMillis()
     {
       return millis();

@@ -1,5 +1,7 @@
+#include <WiFi.h>
 #include "TickCounter.h"
 #include "inverter.h"
+#include "settings.h"
 
 TickCounter _tickCounter;
 
@@ -17,41 +19,110 @@ void updateLoadApi(void);
 
 //----------------------------------------------------------------------
 void setup() {
+  unsigned int numberOfConnections= 0;
+  
   delay(100);
 
   Serial.begin(115200);
   delay(10);
 
   Serial2.begin(2400);
+ 
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    numberOfConnections++;
+
+    Serial.println("Number Of Connections:");
+    Serial.println(numberOfConnections);
+
+    // if ESP12E can't connect to WiFi -> enable deep.sleep
+    if (numberOfConnections > 20) {
+        delay(1000);
+        return;
+    }
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");  
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
 }
 
 //----------------------------------------------------------------------
 void loop() {
-  delay(2000);
+  delay(50);
   
   // Comms with inverter
   serviceInverter();
 
-  updateChargeApi();
-  updateBatteryApi();
-  updateLoadApi();
+  if (_allMessagesUpdated) {
+    delay(1000);
+    updateChargeApi();
+    updateBatteryApi();
+    updateLoadApi();
 
-  /*if (_allMessagesUpdated) {
-    delay(15000);
+    //*****************************************
+    
+    long rssi = WiFi.RSSI();
+    
+    Serial.print("RSSI:");
+    Serial.println(rssi);
+    Serial.print("connecting to ");
+    Serial.println(host);
+
+    // Use WiFiClient class to create TCP connections
+    WiFiClient client;
+    const int httpPort = 80;
+    if (!client.connect(host, httpPort)) 
+    {
+      Serial.println("connection failed");
+      return;
+    }
+    
+    // This will send the request to the server
+    client.print(String("GET /?") +
+                 "battV=" + String(_qpigsMessage.battV) +
+                 "&battChargeA=" + String(_qpigsMessage.battChargeA) +
+                 "&solarA=" + String(_qpigsMessage.solarA) +
+                 "&voltage=" + String(_qpigsMessage.solarV) + 
+                 "&rssi=" + String(rssi) + 
+                 " HTTP/1.1\r\n" +
+                 "Host: " + host + "\r\n" + 
+                 "Connection: close\r\n\r\n");
+    
+    delay(10);
+    
+    // Read all the lines of the reply from server and print them to Serial
+    Serial.println("Respond:");
+    while(client.available())
+    {
+      String line = client.readStringUntil('\r');
+      Serial.print(line);
+    }
+    
+    Serial.println();
+    Serial.println("closing connection");
+
+    //*****************************************
+    
+    delay(14000);
     _allMessagesUpdated = false;
-  }*/
+  }
 }
 
 void updateChargeApi(void) {
   String params;
 
-  params += String(_qpigsMessage.battV);
+  params += String(_qpigsMessage.battV);//battV
   params += "\t";
-  params += String(_qpigsMessage.battChargeA);
+  params += String(_qpigsMessage.battChargeA);//battChargeA
   params += "\t";
-  params += String(_qpigsMessage.solarV);
+  params += String(_qpigsMessage.solarV);//voltage
   params += "\t";
-  params += String(_qpigsMessage.solarA);
+  params += String(_qpigsMessage.solarA);//solarA
   params += "\t";
   params += String(_qpigsMessage.chargingStatus);
  
