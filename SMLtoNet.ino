@@ -13,6 +13,8 @@ extern QpiwsMessage _qpiwsMessage;
 extern QflagMessage _qflagMessage;
 extern QidMessage _qidMessage;
 
+eSource sourcePriority = NONE;
+
 void updateChargeApi(void);
 void updateBatteryApi(void);
 void updateLoadApi(void);
@@ -109,6 +111,22 @@ void loop() {
     //*****************************************
     
     delay(14000);
+
+    // Set output source priority to mains when battery voltage goes bellow 46.5V
+    if(_qpigsMessage.battV < 46.5){
+      if(sourcePriority != MAINS){
+        if(setOutputPrioritySource(MAINS)) {
+          sourcePriority = MAINS;
+        }
+      }
+    } else if(_qpigsMessage.battV > 47.5) {
+      if(sourcePriority != SOLAR){
+        if(setOutputPrioritySource(SOLAR)) {
+          sourcePriority = SOLAR;
+        }
+      }
+    }
+    
     _allMessagesUpdated = false;
   }
 }

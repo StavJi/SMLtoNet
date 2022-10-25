@@ -281,8 +281,7 @@ bool onPI()
 }
 
 //Called once a line has been received from the inverter (on CR)
-void onInverterCommand()
-{
+void onInverterCommand() {
   if ((_commandBuffer.length() > 3) && (_commandBuffer[0] == '('))
   {
     unsigned short calculatedCrc = cal_crc_half((byte*)_commandBuffer.c_str(), _commandBuffer.length() - 2);
@@ -335,46 +334,17 @@ void onInverterCommand()
   _lastRequestedCommand = "";
 }
 
+void sendCmd(String str) {
+  unsigned short crc = cal_crc_half((byte*)str.c_str(), str.length());
+ 
+  Serial2.print(str);
+  Serial2.print((char)((crc >> 8) & 0xFF));
+  Serial2.print((char)((crc >> 0) & 0xFF));
+  Serial2.print("\r");  
+}
 
-//Parses incoming characters from the serial port
-void serviceInverter()
-{
+void readCmdReply(void (*callback)(void)) {
   byte c;
-  char buff[30];
-  
-  //Check time since last requested command
-  if (_lastRequestedAt.compare(INVERTER_COMMAND_TIMEOUT_MS) > 0)
-  {
-    _commandBuffer = "";
-    _lastRequestedCommand = "";
-    _nextCommandNeeded = "";
-  }
-
-  //Wait a bit after receiving the last command before requesting the next one
-  // Dont send until _allMessagesUpdated is false
-  if ((_lastRequestedCommand == "") && (_lastReceivedAt.compare(INVERTER_COMMAND_DELAY_MS) > 0) && (!_allMessagesUpdated))
-  {
-    if (_nextCommandNeeded == "")
-      _nextCommandNeeded = "QPI";
-  
-    unsigned short crc = cal_crc_half((byte*)_nextCommandNeeded.c_str(), _nextCommandNeeded.length());
-  
-    _lastRequestedCommand = _nextCommandNeeded;
-    _lastRequestedAt.reset();
-
-    //Serial.println(_nextCommandNeeded);
-    
-    //sprintf(buff, "%X\n", crc);
-    //Serial.print(buff);
-  
-    Serial2.print(_nextCommandNeeded);
-    Serial2.print((char)((crc >> 8) & 0xFF));
-    Serial2.print((char)((crc >> 0) & 0xFF));
-    Serial2.print("\r");
-  }
-
-  //sprintf(buff, "Rcv %d\n", Serial2.available());
-  //Serial.print(buff);
     
   while (Serial2.available() > 0) {
     c = Serial2.read();
@@ -389,9 +359,59 @@ void serviceInverter()
       }
       else if ((c == '\r') || (c == '\n'))
       {
-        onInverterCommand();
+        callback();
         _commandBuffer = "";
       }
     }
   }   
+}
+
+//Parses incoming characters from the serial port
+void serviceInverter() {
+  char buff[30];
+  
+  //Check time since last requested command
+  if (_lastRequestedAt.compare(INVERTER_COMMAND_TIMEOUT_MS) > 0) {
+    _commandBuffer = "";
+    _lastRequestedCommand = "";
+    _nextCommandNeeded = "";
+  }
+
+  //Wait a bit after receiving the last command before requesting the next one
+  // Dont send until _allMessagesUpdated is false
+  if ((_lastRequestedCommand == "") && (_lastReceivedAt.compare(INVERTER_COMMAND_DELAY_MS) > 0) && (!_allMessagesUpdated)) {
+    if (_nextCommandNeeded == "")
+      _nextCommandNeeded = "QPI";
+
+      sendCmd(_nextCommandNeeded);
+      _lastRequestedCommand = _nextCommandNeeded;
+      _lastRequestedAt.reset();
+   
+  }
+
+  //sprintf(buff, "Rcv %d\n", Serial2.available());
+  //Serial.print(buff);
+  readCmdReply(&onInverterCommand);
+}
+
+bool setOutputPrioritySource(eSource source) {
+  bool status = false;
+  
+  sendCmd("POP" + source);
+  delay(20);
+  readCmdReply(NULL);
+  
+  if (_commandBuffer.length() >= 4) {
+    if((_commandBuffer[1] == 'A') &&
+       (_commandBuffer[2] == 'C') &&
+       (_commandBuffer[3] == 'K')) {
+        
+      status = true;    
+    }
+  }
+
+  _lastReceivedAt.reset();
+  _lastRequestedCommand = "";
+
+  return status;
 }

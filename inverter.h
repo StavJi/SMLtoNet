@@ -6,8 +6,18 @@
 #define INVERTER_COMMAND_TIMEOUT_MS 20000
 #define INVERTER_COMMAND_DELAY_MS 500
 
+enum eSource {
+  NONE = 0xFF,
+  MAINS = 0,
+  SOLAR = 1,
+  SBU = 2
+};
+
 //Send and receive periodic inverter commands
 void serviceInverter();
+
+//Send new output source priority
+bool setOutputPrioritySource(eSource source);
 
 struct QpiMessage
 {
