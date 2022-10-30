@@ -8,9 +8,10 @@
 
 enum eSource {
   NONE = 0xFF,
-  MAINS = 0,
-  SOLAR = 1,
-  SBU = 2
+  SOLAR_FIRST = 0,
+  MAINS_FIRST = 1,
+  MAINS_SOLAR = 2,
+  SOLAR_ONLY = 3
 };
 
 //Send and receive periodic inverter commands

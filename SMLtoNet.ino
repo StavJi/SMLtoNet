@@ -65,17 +65,17 @@ void loop() {
     
     // Set output source priority to mains when battery voltage goes bellow 46.5V
     if(incomingByte == 'M'){
-      if(sourcePriority != MAINS){
-        Serial.println("MAINS");
-        if(setOutputPrioritySource(MAINS)) {
-          sourcePriority = MAINS;
+      if(sourcePriority != MAINS_SOLAR){
+        Serial.println("MAINS_SOLAR");
+        if(setOutputPrioritySource(MAINS_SOLAR)) {
+          sourcePriority = MAINS_SOLAR;
         }
       }
     } else if(incomingByte == 'S') {
-      if(sourcePriority != SOLAR){
-        Serial.println("SOLAR");
-        if(setOutputPrioritySource(SOLAR)) {
-          sourcePriority = SOLAR;
+      if(sourcePriority != SOLAR_ONLY){
+        Serial.println("SOLAR_ONLY");
+        if(setOutputPrioritySource(SOLAR_ONLY)) {
+          sourcePriority = SOLAR_ONLY;
         }
       }
     }

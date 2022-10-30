@@ -334,13 +334,20 @@ void onInverterCommand() {
   _lastRequestedCommand = "";
 }
 
-void sendCmd(String str) {
+void sendCmd(String& str) {
   unsigned short crc = cal_crc_half((byte*)str.c_str(), str.length());
  
   Serial2.print(str);
+  Serial.print(str);
+  
   Serial2.print((char)((crc >> 8) & 0xFF));
+  Serial.print((char)((crc >> 8) & 0xFF));
+  
   Serial2.print((char)((crc >> 0) & 0xFF));
+  Serial.print((char)((crc >> 0) & 0xFF));
+  
   Serial2.print("\r");  
+  Serial.print("\r");  
 }
 
 void readCmdReply(void (*callback)(void)) {
@@ -348,7 +355,7 @@ void readCmdReply(void (*callback)(void)) {
     
   while (Serial2.available() > 0) {
     c = Serial2.read();
-    //Serial.print(c);
+    Serial.print((char)c);
     //Only accept incoming characters if we've requested something
     if (_lastRequestedCommand != "")
     {
@@ -396,8 +403,8 @@ void serviceInverter() {
 
 bool setOutputPrioritySource(eSource source) {
   bool status = false;
-  
-  sendCmd("POP" + source);
+  String cmd = "PCP0" + String(source);
+  sendCmd(cmd);
   delay(20);
   readCmdReply(NULL);
   
