@@ -53,33 +53,82 @@ void setup() {
   Serial.println(WiFi.localIP());
 }
 
-char incomingByte = 0; // for incoming serial data
-
 //----------------------------------------------------------------------
 void loop() {
   delay(50);
-  
-  if (Serial.available() > 0) {
-    // read the incoming byte:
-    incomingByte = Serial.read();
+
+  // Comms with inverter
+  serviceInverter();
+
+  if (_allMessagesUpdated) {
+    delay(1000);
+    updateChargeApi();
+    updateBatteryApi();
+    updateLoadApi();
+
+    //*****************************************
     
-    // Set output source priority to mains when battery voltage goes bellow 46.5V
-    if(incomingByte == 'M'){
-      if(sourcePriority != MAINS_SOLAR){
+    long rssi = WiFi.RSSI();
+    
+    Serial.print("RSSI:");
+    Serial.println(rssi);
+    Serial.print("connecting to ");
+    Serial.println(host);
+
+    // Use WiFiClient class to create TCP connections
+    WiFiClient client;
+    const int httpPort = 80;
+    if (!client.connect(host, httpPort)) {
+      Serial.println("connection failed");
+      return;
+    }
+    
+    // This will send the request to the server
+    client.print(String("GET /?") +
+                 "battV=" + String(_qpigsMessage.battV) +
+                 "&battChargeA=" + String(_qpigsMessage.battChargeA) +
+                 "&solarA=" + String(_qpigsMessage.solarA) +
+                 "&voltage=" + String(_qpigsMessage.solarV) + 
+                 "&rssi=" + String(rssi) + 
+                 " HTTP/1.1\r\n" +
+                 "Host: " + host + "\r\n" + 
+                 "Connection: close\r\n\r\n");
+
+    delay(10);
+    
+    // Read all the lines of the reply from server and print them to Serial
+    Serial.println("Respond:");
+    while(client.available()) {
+      String line = client.readStringUntil('\r');
+      Serial.print(line);
+    }
+    
+    Serial.println();
+    Serial.println("closing connection");
+
+    //*****************************************
+    
+    delay(14000);
+
+     // Set output source priority to mains when battery voltage goes bellow 46.5V
+    if(_qpigsMessage.battV < 46.5) {
+      if(sourcePriority != MAINS_FIRST) {
         Serial.println("MAINS_SOLAR");
-        if(setOutputPrioritySource(MAINS_SOLAR)) {
-          sourcePriority = MAINS_SOLAR;
+        if(setOutputPrioritySource(MAINS_FIRST)) {
+           sourcePriority = MAINS_FIRST;
         }
       }
-    } else if(incomingByte == 'S') {
-      if(sourcePriority != SOLAR_ONLY){
+    } else if(_qpigsMessage.battV > 47.5) {
+      if(sourcePriority != SOLAR_ONLY) {
         Serial.println("SOLAR_ONLY");
         if(setOutputPrioritySource(SOLAR_ONLY)) {
           sourcePriority = SOLAR_ONLY;
         }
       }
     }
-  }
+        
+    _allMessagesUpdated = false;
+ }
 }
 
 void updateChargeApi(void) {
